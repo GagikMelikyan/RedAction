@@ -1,0 +1,276 @@
+//
+//  HomeScreenViewController.swift
+//  Red'Action
+//
+//  Created by Ruzanna Sedrakyan on 11/13/18.
+//  Copyright © 2018 Ruzanna Sedrakyan. All rights reserved.
+//
+
+import UIKit
+
+protocol CellDelegate {
+    func tapFunction()
+}
+
+private let homeIdentifier = "FeedCellHomeScreen"
+private let monActuIdentifier = "FeedCellMonActu"
+private let premiumIdentifier = "FeedCellPremium"
+private let popularIdentifier = "FeedCellPopular"
+var logo: UIImageView!
+var blurEffectView: UIVisualEffectView!
+var visualEffectView: UIVisualEffectView!
+
+class HomeScreenViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout, CellDelegate, SubscriptionDelegate {
+    
+    
+    // MARK: Lifecycle
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        self.edgesForExtendedLayout = []
+        
+        setUpCollectionView()
+        setUpMenuBar()
+        makeRightBarButtonItem()
+        makeLeftBarButtonItem()
+    }
+    
+    @IBAction func menuAction(_ sender: UIBarButtonItem) {
+        showMenu()
+    }
+    
+    // MARK: UICollectionViewDataSource
+    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return 4
+    }
+    
+    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        //let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath)
+        
+        if indexPath.item == 1 {
+            guard let feedCellMonActu = collectionView.dequeueReusableCell(withReuseIdentifier: monActuIdentifier, for: indexPath) as? FeedCellMonActu else {
+                fatalError("This cell is not an instance of FeedCellMonActu.")
+            }
+            
+            feedCellMonActu.cellDelegate = self
+            
+            return feedCellMonActu
+            
+        } else if indexPath.item == 2 {
+            guard let feedCellPremium = collectionView.dequeueReusableCell(withReuseIdentifier: premiumIdentifier, for: indexPath) as? FeedCellPremium else {
+                fatalError("This cell is not an instance of FeedCellMonActu.")
+            }
+            
+            feedCellPremium.cellDelegate = self
+            
+            return feedCellPremium
+            
+        } else if indexPath.item == 3 {
+            guard let feedCellPopular = collectionView.dequeueReusableCell(withReuseIdentifier: popularIdentifier, for: indexPath) as? FeedCellPopular else {
+                fatalError("This cell is not an instance of FeedCellMonActu.")
+            }
+            
+            feedCellPopular.cellDelegate = self
+            
+            return feedCellPopular
+        }
+        
+        guard let feedCellHome = collectionView.dequeueReusableCell(withReuseIdentifier: homeIdentifier, for: indexPath) as? FeedCellHomeScreen else {
+            fatalError("This cell is not an instance of FeedCell.")
+        }
+        
+        feedCellHome.cellDelegate = self
+        
+        return feedCellHome
+    }
+    
+    // MARK: UICollectionViewDelegate
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        var height: CGFloat = 0
+        
+        if UIDevice().userInterfaceIdiom == .phone {
+            switch UIScreen.main.bounds.size.height{
+            case 480:
+                height = view.frame.height
+                print(height)
+            case 568:
+                height = view.frame.height
+                print(height)
+            case 667:
+                height = view.frame.height
+                print(height)
+            case 736:
+                height = view.frame.height - 10
+                print(height)
+            case 812:
+                height = view.frame.height - 40
+                print(height)
+            case 896:
+                height = view.frame.height - 40
+                print(height)
+            default:
+                print(height)
+            }
+        }
+        //return CGSize(width: view.frame.width, height: view.frame.height - 50)
+        return CGSize(width: view.frame.width, height: height)
+    }
+    
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        menuBar.horizontalBarLeftAnchorConstraint?.constant = scrollView.contentOffset.x / 4
+    }
+    
+    private func makeRightBarButtonItem() {
+        let sortButton = UIButton(frame: CGRect(x: 0, y: 0, width: 95, height: 22))
+        sortButton.setTitle("FAIRE UN DON", for: .normal)
+        sortButton.titleLabel?.font = UIFont(name: "Calibri", size: 15)
+        sortButton.setTitleColor(.white, for: .normal)
+        sortButton.layer.cornerRadius = 2
+        sortButton.backgroundColor = UIColor (red: 232/255.0, green: 181/255.0, blue: 40/255.0, alpha: 1)
+        sortButton.addTarget(self, action: #selector(donsButtonClicked(sender:)), for: .touchUpInside)
+        let item = UIBarButtonItem(customView: sortButton);
+        self.navigationItem.setRightBarButtonItems([item], animated: false);
+        item.customView?.widthAnchor.constraint(equalToConstant: 95).isActive = true
+        item.customView?.heightAnchor.constraint(equalToConstant: 22).isActive = true
+    }
+    
+    private func makeLeftBarButtonItem() {
+        let btn = UIButton(type: .custom);
+        btn.setImage(UIImage(named: "redaction-logo-mobile"), for: .normal);
+        
+        btn.frame = CGRect(x: 0, y: 0, width: 120, height: 25);
+        let item = UIBarButtonItem(customView: btn);
+        self.navigationItem.setLeftBarButtonItems([item], animated: false);
+        
+        item.customView?.widthAnchor.constraint(equalToConstant: 120).isActive = true
+        item.customView?.heightAnchor.constraint(equalToConstant: 25).isActive = true
+    }
+    
+    private lazy var summaryViewController: DonsController = {
+        // Load Storyboard
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        
+        // Instantiate View Controller
+        var viewController = storyboard.instantiateViewController(withIdentifier: "DonsController") as! DonsController
+        
+        return viewController
+    }()
+    
+    private func add(asChildViewController viewController: UIViewController) {
+        // Add Child View Controller
+        addChildViewController(viewController)
+        
+        // Add Child View as Subview
+        view.addSubview(viewController.view)
+        
+        // Notify Child View Controller
+        viewController.didMove(toParentViewController: self)
+    }
+    
+    private func remove(asChildViewController viewController: UIViewController) {
+        // Notify Child View Controller
+        viewController.willMove(toParentViewController: nil)
+        
+        // Remove Child View From Superview
+        viewController.view.removeFromSuperview()
+        
+        // Notify Child View Controller
+        viewController.removeFromParentViewController()
+    }
+    
+    @objc func donsButtonClicked(sender: UIButton) {
+        add(asChildViewController: summaryViewController)
+        
+        summaryViewController.view.translatesAutoresizingMaskIntoConstraints = false
+        let horizontalConstraint = NSLayoutConstraint(item: summaryViewController.view, attribute: NSLayoutConstraint.Attribute.centerX, relatedBy: NSLayoutConstraint.Relation.equal, toItem: view, attribute: NSLayoutConstraint.Attribute.centerX, multiplier: 1, constant: 0)
+        let verticalConstraint = NSLayoutConstraint(item: summaryViewController.view, attribute: NSLayoutConstraint.Attribute.centerY, relatedBy: NSLayoutConstraint.Relation.equal, toItem: view, attribute: NSLayoutConstraint.Attribute.centerY, multiplier: 1, constant: 40)
+        let widthConstraint = NSLayoutConstraint(item: summaryViewController.view, attribute: NSLayoutConstraint.Attribute.width, relatedBy: NSLayoutConstraint.Relation.equal, toItem: nil, attribute: NSLayoutConstraint.Attribute.notAnAttribute, multiplier: 1, constant: view.frame.size.width)
+        let heightConstraint = NSLayoutConstraint(item: summaryViewController.view, attribute: NSLayoutConstraint.Attribute.height, relatedBy: NSLayoutConstraint.Relation.equal, toItem: nil, attribute: NSLayoutConstraint.Attribute.notAnAttribute, multiplier: 1, constant: view.frame.size.height)
+        view.addConstraints([horizontalConstraint, verticalConstraint, widthConstraint, heightConstraint])
+        
+    }
+    
+    lazy var menuBar: MenuBar = {
+        let mb = MenuBar()
+        mb.homeController = self
+        return mb
+    }()
+    
+    // Make settings of menu bar
+    private func setUpMenuBar() {
+        view.addSubview(menuBar)
+        view.addConstraintsWithFormat("H:|[v0]|", views: menuBar)
+        view.addConstraintsWithFormat("V:|[v0(40)]", views: menuBar)
+    }
+    
+    // Make settings of collection view
+    private func setUpCollectionView() {
+        
+        if let flowLayout = collectionView?.collectionViewLayout as? UICollectionViewFlowLayout {
+            flowLayout.scrollDirection = .horizontal
+            flowLayout.minimumLineSpacing = 0
+        }
+        
+        //collectionView?.contentInset = UIEdgeInsetsMake(20, 0, 0, 0)
+        //   collectionView?.scrollIndicatorInsets = UIEdgeInsetsMake(40, 0, 0, 0)
+        collectionView?.isPagingEnabled = true
+        
+    }
+    
+    // Make scroll function for collection view section
+    func scrollToMenuIndex(menuIndex: Int) {
+        remove(asChildViewController: summaryViewController)
+        remove(asChildViewController: subscriptionViewController)
+        let indexPath = IndexPath(item: menuIndex, section: 0)
+        collectionView?.scrollToItem(at: indexPath, at: [], animated: true)
+    }
+    
+    // Action for showing Menu
+    private func showMenu () {
+        
+        let sideMenuViewController = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "SideMenuViewController") as! SideMenuViewController
+        self.definesPresentationContext = true
+        sideMenuViewController.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
+        self.present(sideMenuViewController, animated: true, completion: nil)
+        
+    }
+    
+    // Click on label and push to View Controller
+    func tapFunction() {
+        
+        let articleNVC = self.storyboard?.instantiateViewController(withIdentifier: "ArticleNC") as! ArticleNC
+        let articleVC = articleNVC.viewControllers.first as! ArticleVC
+        let id = UserDefaults.standard.integer(forKey: "ArticleId")
+        articleVC.articleId = id
+        articleVC.subscriptionDelegate = self
+        self.present(articleNVC, animated: true, completion: nil)
+    }
+    
+    
+    //Mark:  Subscription Delegate
+        
+    private lazy var subscriptionViewController: SubscriptionViewController = {
+        // Load Storyboard
+        let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
+        
+        // Instantiate View Controller
+        var viewController = storyboard.instantiateViewController(withIdentifier: SubscriptionViewController.id) as! SubscriptionViewController
+        
+        return viewController
+    }()
+    
+    @objc func goToSubscriptionVC() {
+        add(asChildViewController: subscriptionViewController)
+        
+        subscriptionViewController.view.translatesAutoresizingMaskIntoConstraints = false
+        let horizontalConstraint = NSLayoutConstraint(item: subscriptionViewController.view, attribute: NSLayoutConstraint.Attribute.centerX, relatedBy: NSLayoutConstraint.Relation.equal, toItem: view, attribute: NSLayoutConstraint.Attribute.centerX, multiplier: 1, constant: 0)
+        let verticalConstraint = NSLayoutConstraint(item: subscriptionViewController.view, attribute: NSLayoutConstraint.Attribute.centerY, relatedBy: NSLayoutConstraint.Relation.equal, toItem: view, attribute: NSLayoutConstraint.Attribute.centerY, multiplier: 1, constant: 40)
+        let widthConstraint = NSLayoutConstraint(item: subscriptionViewController.view, attribute: NSLayoutConstraint.Attribute.width, relatedBy: NSLayoutConstraint.Relation.equal, toItem: nil, attribute: NSLayoutConstraint.Attribute.notAnAttribute, multiplier: 1, constant: view.frame.size.width)
+        let heightConstraint = NSLayoutConstraint(item: subscriptionViewController.view, attribute: NSLayoutConstraint.Attribute.height, relatedBy: NSLayoutConstraint.Relation.equal, toItem: nil, attribute: NSLayoutConstraint.Attribute.notAnAttribute, multiplier: 1, constant: view.frame.size.height)
+        view.addConstraints([horizontalConstraint, verticalConstraint, widthConstraint, heightConstraint])
+        
+    }
+    
+    
+}
+
